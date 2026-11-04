@@ -13,8 +13,6 @@
         ssize_t recv_buff_size;
         char buff[1024];
         struct sockaddr_in addr={0};//创建结构体默认初始化
-        
-        
         listen_fd=socket(AF_INET,SOCK_STREAM,0);//socket返回 出来listenfd
         if (listen_fd<0)
         {
@@ -57,6 +55,9 @@
         printf("等待客户端连接：127.0.0.1:1502\n");
     /* 5. 接受一个连接，获得新的通信描述符 */
     cli_fd=   accept(listen_fd,NULL,NULL);
+
+
+
     if (cli_fd<0)
         {
             perror("accept");
@@ -67,26 +68,35 @@
     printf("客户端(accept)已连接\n");
     /* 6. 接收一段数据，留一个字节放字符串结束符 */
     //recv(fd, buff, len, flags) = "从 fd 这条连接上，最多收 len 个字节，放进 buff，按 flags 的方式收"。
-        recv_buff_size =recv(cli_fd,buff,sizeof(buff)-1,0);
+       
 
-    if (recv_buff_size<0)
+    while (1)
+    {       
+        /* 6. 接收一段数据，留一个字节放字符串结束符 */
+        //recv(fd, buff, len, flags) = "从 fd 这条连接上，最多收 len 个字节，放进 buff，按 flags 的方式收"。   
+        recv_buff_size =recv(cli_fd,buff,sizeof(buff)-1,0);
+        if (recv_buff_size<0)
         {
             perror("recv");
             close(listen_fd);
             close(cli_fd);
             return EXIT_FAILURE;
+            break;
         }
         else if (recv_buff_size == 0) {
             printf("客户端已关闭连接\n");
+            break;
         } 
         else{
 
     buff[recv_buff_size] = '\0';
             printf("OK 收到 %zd 字节: %s\n", recv_buff_size, buff);
             send(cli_fd, "OK", 2, MSG_NOSIGNAL);
-
+            continue;
 
         }
+    }
+    
 
         close(cli_fd);
         close(listen_fd);
