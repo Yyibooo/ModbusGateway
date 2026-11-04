@@ -1,0 +1,4 @@
+/echo_server
+/build/
+/build-cmake/
+*.o
