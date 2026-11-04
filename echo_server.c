@@ -6,7 +6,7 @@
     #include <sys/socket.h>  // socket、bind、listen、accept、recv、send
     #include <netinet/in.h>  // struct sockaddr_in、htons
     #include <arpa/inet.h>   // inet_pton：将 IP 字符串转换为网络地址
-    int main(int argc, char const *argv[])
+    int main()
     {   int temp_ret;
         int cli_fd;
         int listen_fd;
