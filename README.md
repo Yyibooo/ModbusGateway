@@ -1,7 +1,8 @@
 # ModbusGateway
 
 这是一个逐步完成的 Linux Modbus TCP–RTU 网关学习项目。
-当前版本是单客户端 TCP 连通实验：接收一段文本、回复两个字节 OK，然后退出。
+当前服务端支持在同一个客户端连接内反复接收字节、回复两个字节 OK，客户端关闭后退出。
+自写的 echo_client 目前只完成连接并打印提示，下一步将增加发送 hello、接收 OK 和显式关闭连接。
 
 ## 当前环境
 
@@ -18,7 +19,9 @@ make
 ```
 
 `make` 根据 Makefile 编译；源文件没有变化时不会重复编译。
-`make clean` 删除生成的 echo_server 程序，保留源代码。
+`make` 同时构建 echo_server 和 echo_client；`make clean` 删除这两个生成的程序，保留源代码。
+
+另一个 WSL 终端运行 `./echo_client` 可测试当前的连接功能。此时客户端连接成功后直接结束，服务端会打印客户端关闭；这一步还没有数据收发。
 
 在第二个 WSL 终端中，可使用以下临时客户端验证：
 
@@ -32,12 +35,13 @@ python3 -c 'import socket; s=socket.create_connection(("127.0.0.1",1502)); s.sen
 
 - `CC`：使用的编译器。
 - `CFLAGS`：编译选项，开启常见警告并生成调试信息。
-- `TARGET`：生成的程序名。
-- `all`：默认构建目标。
-- `echo_server: echo_server.c`：说明程序依赖这个源文件。
+- `TARGETS`：两个生成的程序名 echo_server 和 echo_client。
+- `all`：默认构建目标，依赖两个可执行程序。
+- `echo_server: echo_server.c`：服务端目标及其源文件依赖。
+- `echo_client: echo_client.c`：客户端目标及其源文件依赖。
 - 规则下方的命令必须以 Tab 开头。
 
-目前先用单文件 Makefile；增加客户端时学习多个目标，拆分模块时学习 .o 和头文件依赖。
+目前使用两个显式构建目标，分别编译服务端和客户端。拆分模块时再学习 .o 和头文件依赖。
 后续再用 CMake 构建同一个项目，比较两种工具的职责和用法。
 
 ## 每次修改的 Git 练习

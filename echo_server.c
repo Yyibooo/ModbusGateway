@@ -25,7 +25,7 @@
     /* 2. 设置本机监听地址 */
         addr.sin_port=htons(1502);
         addr.sin_family=AF_INET;
-    temp_ret= inet_pton(AF_INET,"127.0.0.1",&addr.sin_addr);
+        temp_ret= inet_pton(AF_INET,"127.0.0.1",&addr.sin_addr);
         if (temp_ret!=1)
         {
             perror("inet_pton");
@@ -55,9 +55,6 @@
         printf("等待客户端连接：127.0.0.1:1502\n");
     /* 5. 接受一个连接，获得新的通信描述符 */
     cli_fd=   accept(listen_fd,NULL,NULL);
-
-
-
     if (cli_fd<0)
         {
             perror("accept");
@@ -89,7 +86,7 @@
         } 
         else{
 
-    buff[recv_buff_size] = '\0';
+            buff[recv_buff_size] = '\0';
             printf("OK 收到 %zd 字节: %s\n", recv_buff_size, buff);
             send(cli_fd, "OK", 2, MSG_NOSIGNAL);
             continue;
