@@ -38,27 +38,53 @@
                     close(sock_fd);
                     return EXIT_FAILURE;
                 }
-        printf("连接服务端成功\n");
-                send(sock_fd,"hello",5,MSG_NOSIGNAL);
-            while(1){  recv_size= recv(sock_fd,buff,sizeof(buff)-1,0);
-                 if (recv_size<0)
-        {
-            perror("recv");
-            close(sock_fd);
-            return EXIT_FAILURE;
-            break;
-        }
-        else if (recv_size == 0) {
-            printf("客户端已关闭连接\n");
-            break;
-        } 
-        else{
+                const char msg[] = "hello";
+                size_t len = sizeof(msg) - 1;  // 只发送 hello 这 5 个字节
+                size_t sent = 0;
+                 
+                printf("连接服务端成功\n")   ;
+                while (sent < len){
+                ssize_t send_size = send(sock_fd, msg + sent, len - sent, MSG_NOSIGNAL);
+                if (send_size <= 0)
+                    {
+                        fprintf(stderr, "发送失败\n");
+                        close(sock_fd);
+                        return EXIT_FAILURE;
+                    }
 
-            buff[recv_size] = '\0';
-           printf("服务端已关闭连接\n");
-       break;
-}  
-        }
+                sent += send_size;
+
+                }
+          
+            size_t total=0;
+
+            while(1){  
+                
+                recv_size = recv(sock_fd, buff + total, 2 - total, 0);
+                
+                if (recv_size<0)
+                {
+                    perror("recv");
+                    close(sock_fd);
+                    return EXIT_FAILURE;
+                    break;
+                }
+             else if (recv_size == 0)
+                    {
+                        fprintf(stderr, "服务端提前关闭连接，已收到 %zu/2 字节\n", total);
+                        close(sock_fd);
+                        return EXIT_FAILURE;
+                    }
+                else{
+                total=total+recv_size;
+                        if (total == 2)
+                        {
+                            buff[total] = '\0';
+                            printf("收到 %zu 字节: %s\n", total, buff);
+                            break;
+                        }
+                      }  
+                        }
         close(sock_fd);
         return 0;
     }

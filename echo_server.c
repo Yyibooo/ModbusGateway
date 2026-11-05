@@ -66,12 +66,12 @@
     /* 6. 接收一段数据，留一个字节放字符串结束符 */
     //recv(fd, buff, len, flags) = "从 fd 这条连接上，最多收 len 个字节，放进 buff，按 flags 的方式收"。
        
-
+    size_t total = 0;
     while (1)
     {       
         /* 6. 接收一段数据，留一个字节放字符串结束符 */
         //recv(fd, buff, len, flags) = "从 fd 这条连接上，最多收 len 个字节，放进 buff，按 flags 的方式收"。   
-        recv_buff_size =recv(cli_fd,buff,sizeof(buff)-1,0);
+        recv_buff_size = recv(cli_fd, buff + total, 5 - total, 0);
         if (recv_buff_size<0)
         {
             perror("recv");
@@ -85,10 +85,18 @@
             break;
         } 
         else{
+            total+=recv_buff_size;
+            if (total==5)
+            {
+                buff[total] = '\0';
+                printf("OK 收到 %zd 字节: %s\n", total, buff);
+                send(cli_fd, "OK", 2, MSG_NOSIGNAL);
+                total=0;
+              
+            }
+              
+            
 
-            buff[recv_buff_size] = '\0';
-            printf("OK 收到 %zd 字节: %s\n", recv_buff_size, buff);
-            send(cli_fd, "OK", 2, MSG_NOSIGNAL);
             continue;
 
         }

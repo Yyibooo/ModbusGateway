@@ -1,48 +1,39 @@
 # ModbusGateway
 
 这是一个逐步完成的 Linux Modbus TCP–RTU 网关学习项目。
-当前服务端支持在同一个客户端连接内反复接收字节、回复两个字节 OK，客户端关闭后退出。
-自写的 echo_client 目前只完成连接并打印提示，下一步将增加发送 hello、接收 OK 和显式关闭连接。
+当前的 TCP 实验支持客户端发送 hello 并收到 OK。Modbus TCP 模拟设备已实现监听。
 
 ## 当前环境
 
-- WSL Ubuntu，项目目录：`/home/craig/ModbusGateway`。
+- WSL Ubuntu，项目目录为 `/home/craig/ModbusGateway`。
 - 使用 GCC、GNU Make、Git。
-- 当前 TCP 实验不需要 libmodbus，协议通信阶段再准备依赖。
+- Modbus 目标使用 libmodbus 3.2.0 或更新版本。Makefile 默认查找 `~/.local/libmodbus-3.2.0/lib/pkgconfig`。如果库装在别处，可通过 `MODBUS_PKGCONFIG_DIR` 指定相应目录。
 
 ## 编译与运行
 
 ```bash
 cd /home/craig/ModbusGateway
 make
-./echo_server
+./build/echo_server
 ```
 
-`make` 根据 Makefile 编译；源文件没有变化时不会重复编译。
-`make` 同时构建 echo_server 和 echo_client；`make clean` 删除这两个生成的程序，保留源代码。
+在第二个 WSL 终端从项目目录运行 `./build/echo_client`。预期客户端收到 OK，服务端打印 hello，随后检测到客户端断开并退出。
 
-另一个 WSL 终端运行 `./echo_client` 可测试当前的连接功能。此时客户端连接成功后直接结束，服务端会打印客户端关闭；这一步还没有数据收发。
-
-在第二个 WSL 终端中，可使用以下临时客户端验证：
+编译和运行 Modbus TCP 模拟设备：
 
 ```bash
-python3 -c 'import socket; s=socket.create_connection(("127.0.0.1",1502)); s.sendall(b"hello"); print(s.makefile("rb").read(2)); s.close()'
+make modbus_server
+./build/modbus_server
 ```
 
-期望客户端收到 `b'OK'`，服务端打印接收内容并退出。
+运行 `make check-modbus` 会编译并运行库版本检查程序。
 
 ## 当前 Makefile
 
-- `CC`：使用的编译器。
-- `CFLAGS`：编译选项，开启常见警告并生成调试信息。
-- `TARGETS`：两个生成的程序名 echo_server 和 echo_client。
-- `all`：默认构建目标，依赖两个可执行程序。
-- `echo_server: echo_server.c`：服务端目标及其源文件依赖。
-- `echo_client: echo_client.c`：客户端目标及其源文件依赖。
-- 规则下方的命令必须以 Tab 开头。
-
-目前使用两个显式构建目标，分别编译服务端和客户端。拆分模块时再学习 .o 和头文件依赖。
-后续再用 CMake 构建同一个项目，比较两种工具的职责和用法。
+- `make` 默认构建 echo 服务端和客户端。可用 `make echo_server` 或 `make echo_client` 单独构建。
+- `BUILD_DIR` 指定产物目录。可执行文件统一输出到 `build/`，该目录由 Git 忽略。
+- Makefile 在构建时创建 `build/`。已有产物且对应源码没有变化时，重复执行 make 不会重编译。
+- `make clean` 删除 Makefile 生成的可执行文件，保留源码。
 
 ## 每次修改的 Git 练习
 

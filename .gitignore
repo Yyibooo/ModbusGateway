@@ -1,5 +1,3 @@
-/echo_server
-/echo_client
 /build/
 /build-cmake/
 *.o

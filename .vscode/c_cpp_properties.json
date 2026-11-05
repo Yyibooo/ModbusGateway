@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "compilerPath": "/usr/bin/gcc",
+            "intelliSenseMode": "linux-gcc-x64",
+            "includePath": [
+                "${workspaceFolder}",
+                "${env:HOME}/.local/libmodbus-3.2.0/include/modbus"
+            ]
+        }
+    ],
+    "version": 4
+}
