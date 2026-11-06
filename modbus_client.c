@@ -17,9 +17,9 @@ int main(void)
 {
     // 创建一个 Modbus TCP 客户端上下文：
     //   第一个参数 "127.0.0.1" 是服务器 IP（本机回环地址）
-    //   第二个参数 1502 是服务器监听的 TCP 端口
+    //   第二个参数 1503 是网关监听的 TCP 端口
     // 注意：这里只是"准备好连接参数"，还没有真正建立连接
-    modbus_t *ctx = modbus_new_tcp("127.0.0.1", 1502);
+    modbus_t *ctx = modbus_new_tcp("127.0.0.1", 1503);
 
     // 创建失败（通常是内存不足）时 ctx 为 NULL
     if (ctx == NULL)

@@ -48,36 +48,41 @@ int main(void)
             modbus_free(ctx);               // 释放 modbus 上下文
             return EXIT_FAILURE;            // 返回失败，结束程序
     }
-    // 定义接收缓冲区；MODBUS_TCP_MAX_ADU_LENGTH 是 Modbus TCP 一帧的最大长度
-        uint8_t request[MODBUS_TCP_MAX_ADU_LENGTH];
-        // 阻塞接收客户端发来的原始请求字节（MBAP 头 + PDU），返回实际收到的字节数
-        int request_len = modbus_receive(ctx, request);
+    uint8_t request[MODBUS_TCP_MAX_ADU_LENGTH];
+    int handled = 0;
+    int status = EXIT_SUCCESS;
 
-        // 默认先把结果设为失败；只有成功应答后才改成 EXIT_SUCCESS
-        int status = EXIT_FAILURE;
-        // 接收失败（-1），可能是连接断开或出错
+    // 本次实验在同一条连接内处理一写一读。
+    while (handled < 2)
+    {
+        int request_len = modbus_receive(ctx, request);
         if (request_len == -1)
         {
-            perror("modbus_receive");       // 打印接收失败原因
+            perror("modbus_receive");
+            status = EXIT_FAILURE;
+            break;
         }
-            else if (request_len > 0)
+        if (request_len == 0)
         {
-            // 核心：让 libmodbus 自动解析功能码、按地址读写 mapping、打包并发送回复
-            int reply_len = modbus_reply(ctx, request, request_len, mapping);
-
-            // 回复失败（-1）
-            if (reply_len == -1)
-            {
-                perror("modbus_reply");      // 打印回复失败原因
-            }
-            else
-            {
-                // 打印本次请求/回复的字节数，便于调试
-                printf("收到 %d 字节请求，发出 %d 字节回复\n",
-                request_len, reply_len);
-                status = EXIT_SUCCESS;     // 标记本次处理成功
-            }
+            continue;
         }
-            
 
+        int reply_len = modbus_reply(ctx, request, request_len, mapping);
+        if (reply_len == -1)
+        {
+            perror("modbus_reply");
+            status = EXIT_FAILURE;
+            break;
+        }
+
+        ++handled;
+        printf("第 %d 次：收到 %d 字节请求，发出 %d 字节回复\n",
+               handled, request_len, reply_len);
+    }
+
+    modbus_close(ctx);
+    close(listen_fd);
+    modbus_mapping_free(mapping);
+    modbus_free(ctx);
+    return status;
 }

@@ -40,6 +40,12 @@ int main(void)
 
     // 主动连接后端设备（TCP 三次握手）
     backend_rc = modbus_connect(backend);
+    int timeout_rc=modbus_set_response_timeout(backend,0,20000);
+        if (timeout_rc == -1)
+    {
+        fprintf(stderr, "设置后端响应超时失败：%s\n", modbus_strerror(errno));
+        goto cleanup;
+    }
     if (backend_rc == -1)
     {
         fprintf(stderr, "连接模拟设备失败：%s\n", modbus_strerror(errno));
@@ -62,7 +68,7 @@ int main(void)
     // 只处理 2 次转发就退出（演示用，真实代理应为死循环）
     while (handled < 2)
     {
-        // 从客户端收一帧原始请求（不解析，只是字节流）
+        // 接收一条 Modbus TCP 请求，request 中保存的是请求报文
         int request_len = modbus_receive(frontend, request);
         if (request_len == -1)
         {
@@ -71,11 +77,10 @@ int main(void)
         }
         if (request_len == 0)
         {
-            continue;            // 收到 0 字节，跳过重新收
+            continue;            // 库忽略了该请求，继续接收
         }
 
-        // ⚠️ 核心：把请求原样转发给 backend，再把 backend 的回复发回 frontend
-        // 注意：modbus_proxy 不是 libmodbus 官方 API，需自行实现（见下方说明）
+        // libmodbus 3.2.0 提供的转发接口会把请求发给后端，并把回复转回客户端。
         int reply_len = modbus_proxy(frontend, backend, request, request_len);
         if (reply_len == -1)
         {
