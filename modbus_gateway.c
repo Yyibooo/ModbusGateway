@@ -5,6 +5,16 @@
 #include <unistd.h>      // close()
 #include <modbus.h>
 
+    struct forward_job
+    {
+        modbus_t *frontend;
+        modbus_t *backend;
+        const uint8_t *request;
+        int request_len;
+        int reply_len;
+        int error_code;
+    };
+
 int main(void)
 {
     int status = EXIT_FAILURE;   // 默认失败，只有全部成功才改成 SUCCESS
