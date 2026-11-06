@@ -4,17 +4,19 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char **argv)
 {
-    if (argc < 2 || argc > 3)
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    if (argc < 2 || argc > 4)
     {
-        fprintf(stderr, "用法：%s <串口设备路径> [请求数]\n", argv[0]);
+        fprintf(stderr, "用法：%s <串口设备路径> [请求数 [--drop-first]]\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     int request_limit = 1;
-    if (argc == 3)
+    if (argc >= 3)
     {
         char *end;
         errno = 0;
@@ -25,6 +27,18 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
         request_limit = (int)count;
+    }
+
+    int drop_first = 0;
+    if (argc == 4)
+    {
+        int comparison = strcmp(argv[3], "--drop-first");
+        if (comparison != 0)
+        {
+            fprintf(stderr, "未知选项：%s\n", argv[3]);
+            return EXIT_FAILURE;
+        }
+        drop_first = 1;
     }
 
     modbus_t *ctx = modbus_new_rtu(argv[1], 9600, 'N', 8, 1);
@@ -38,6 +52,15 @@ int main(int argc, char **argv)
     if (rc == -1)
     {
         fprintf(stderr, "设置设备地址失败：%s\n", modbus_strerror(errno));
+        modbus_free(ctx);
+        return EXIT_FAILURE;
+    }
+
+    // 忽略发给其他设备的帧后，先于网关结束对该设备回复的等待。
+    rc = modbus_set_response_timeout(ctx, 0, 100000);
+    if (rc == -1)
+    {
+        fprintf(stderr, "设置 RTU 回复等待时间失败：%s\n", modbus_strerror(errno));
         modbus_free(ctx);
         return EXIT_FAILURE;
     }
@@ -80,6 +103,13 @@ int main(int argc, char **argv)
         }
         if (request_len == 0)
         {
+            continue;
+        }
+
+        if (drop_first && handled == 0)
+        {
+            ++handled;
+            printf("收到 %d 字节 RTU 请求，按实验设置跳过回复\n", request_len);
             continue;
         }
 

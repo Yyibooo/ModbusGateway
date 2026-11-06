@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from pathlib import Path
+import os
 import re
 import select
 import socket
@@ -9,8 +10,9 @@ import tempfile
 import time
 
 PROJECT = Path(__file__).resolve().parents[1]
-GATEWAY = PROJECT / "build" / "gateway_shared_backend_demo"
+GATEWAY = Path(os.environ.get("GATEWAY_BINARY", PROJECT / "build" / "gateway_shared_backend_demo"))
 TIMEOUT = 3
+GATEWAY_ENV = {name: value for name, value in os.environ.items() if not name.startswith("MBGW_")}
 
 
 def receive_exact(peer, size):
@@ -43,23 +45,28 @@ def reset_connection(peer):
 
 
 @contextmanager
-def start_gateway(executable):
+def start_gateway(executable, *arguments, env=None, port=1506, verbose=True):
     with subprocess.Popen(
-        ["stdbuf", "-oL", str(executable)],
+        [str(executable), *map(str, arguments)],
+        env=GATEWAY_ENV if env is None else env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         bufsize=0,
     ) as gateway:
         try:
-            wait_for_log(gateway, "共享后端实验监听 1506")
+            wait_for_log(gateway, f"共享后端实验监听 {port}，", verbose=verbose)
             yield gateway
         finally:
             if gateway.poll() is None:
                 gateway.terminate()
-                gateway.wait(timeout=TIMEOUT)
+                try:
+                    gateway.wait(timeout=TIMEOUT)
+                except subprocess.TimeoutExpired:
+                    gateway.kill()
+                    gateway.wait(timeout=TIMEOUT)
 
 
-def wait_for_log(gateway, marker):
+def wait_for_log(gateway, marker, verbose=True):
     deadline = time.monotonic() + TIMEOUT
     while time.monotonic() < deadline:
         remaining = max(0, deadline - time.monotonic())
@@ -69,7 +76,8 @@ def wait_for_log(gateway, marker):
         line = gateway.stdout.readline().decode().strip()
         if not line:
             break
-        print(line)
+        if verbose:
+            print(line)
         if marker in line:
             return line
     raise RuntimeError(f"网关日志中未看到 {marker!r}")
@@ -105,6 +113,7 @@ def run_case(executable, reuse_fd):
             backend, _ = listener.accept()
             with backend, connect_client() as a:
                 backend.settimeout(TIMEOUT)
+                wait_for_log(gateway, "已接入")
                 a.sendall(request(0))
                 first = receive_frame(backend)
                 assert first[7:] == request(0)[7:], first.hex()
@@ -128,6 +137,8 @@ def run_case(executable, reuse_fd):
                     print(f"通过：A fd={fd_a}，B fd={fd_b} 读到 789，C fd={fd_c} 读到 456")
                 else:
                     with connect_client() as b:
+                        # connect() 返回时，网关可能还没 accept() 这条连接。
+                        wait_for_log(gateway, "已接入")
                         b.sendall(request(2))
                         reset_connection(a)
                         backend.sendall(response(first, 123))
@@ -144,18 +155,28 @@ def connect_client():
     return socket.create_connection(("127.0.0.1", 1506), timeout=TIMEOUT)
 
 
-if __name__ == "__main__":
-    run_case(GATEWAY, reuse_fd=False)
+@contextmanager
+def gateway_variant(client_count):
+    provided = os.environ.get(f"GATEWAY_{'THREE' if client_count == 3 else 'FOUR'}_CLIENTS")
+    if provided:
+        yield Path(provided)
+        return
 
-    with tempfile.TemporaryDirectory(prefix="gateway-fd-reuse-") as directory:
+    with tempfile.TemporaryDirectory(prefix="gateway-variant-") as directory:
         subprocess.run(
             [
                 "make",
                 f"BUILD_DIR={directory}",
-                "CFLAGS=-Wall -Wextra -g -DGATEWAY_DEMO_CLIENT_COUNT=3",
+                f"CFLAGS=-Wall -Wextra -g -DGATEWAY_DEMO_CLIENT_COUNT={client_count}",
                 "gateway_shared_backend_demo",
             ],
             cwd=PROJECT,
             check=True,
         )
-        run_case(Path(directory) / GATEWAY.name, reuse_fd=True)
+        yield Path(directory) / "gateway_shared_backend_demo"
+
+
+if __name__ == "__main__":
+    run_case(GATEWAY, reuse_fd=False)
+    with gateway_variant(3) as executable:
+        run_case(executable, reuse_fd=True)
