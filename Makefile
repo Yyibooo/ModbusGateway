@@ -1,6 +1,8 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
 BUILD_DIR = build
+
+vpath %.c examples
 ECHO_TARGETS = echo_server echo_client
 MODBUS_TARGETS = check_modbus modbus_server modbus_client modbus_gateway gateway_queue_demo gateway_frontend_demo gateway_shared_backend_demo modbus_rtu_server modbus_rtu_client
 THREAD_TARGETS = gateway_worker_demo
