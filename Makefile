@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -g
 BUILD_DIR = build
 
-vpath %.c examples
+vpath %.c src examples
 ECHO_TARGETS = echo_server echo_client
 MODBUS_TARGETS = check_modbus modbus_server modbus_client modbus_gateway gateway_queue_demo gateway_frontend_demo gateway_shared_backend_demo modbus_rtu_server modbus_rtu_client
 THREAD_TARGETS = gateway_worker_demo
@@ -23,7 +23,7 @@ $(addprefix $(BUILD_DIR)/,$(ECHO_TARGETS)): $(BUILD_DIR)/%: %.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $< -o $@
 
 check-modbus: $(BUILD_DIR)/check_modbus
-	./$(BUILD_DIR)/check_modbus
+	"$<"
 
 $(BUILD_DIR)/modbus_gateway $(BUILD_DIR)/gateway_queue_demo $(BUILD_DIR)/gateway_frontend_demo $(BUILD_DIR)/gateway_shared_backend_demo: override CFLAGS += -pthread
 

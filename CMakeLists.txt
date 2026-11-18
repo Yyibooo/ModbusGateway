@@ -23,12 +23,13 @@ foreach(name IN ITEMS echo_server echo_client gateway_worker_demo)
 endforeach()
 target_link_libraries(gateway_worker_demo PRIVATE Threads::Threads)
 
-foreach(name IN ITEMS check_modbus gateway_queue_demo gateway_frontend_demo)
+set(GATEWAY_SOURCE src/gateway_shared_backend_demo.c)
+add_modbus_program(gateway_shared_backend_demo ${GATEWAY_SOURCE})
+
+foreach(name IN ITEMS check_modbus gateway_queue_demo gateway_frontend_demo
+                      modbus_server modbus_client modbus_gateway
+                      modbus_rtu_server modbus_rtu_client)
     add_modbus_program(${name} examples/${name}.c)
-endforeach()
-foreach(name IN ITEMS modbus_server modbus_client modbus_gateway
-                      modbus_rtu_server modbus_rtu_client gateway_shared_backend_demo)
-    add_modbus_program(${name} ${name}.c)
 endforeach()
 foreach(name IN ITEMS modbus_gateway gateway_queue_demo gateway_frontend_demo gateway_shared_backend_demo)
     target_link_libraries(${name} PRIVATE Threads::Threads)
@@ -37,10 +38,10 @@ endforeach()
 include(CTest)
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
-    add_modbus_program(gateway_three_clients gateway_shared_backend_demo.c)
+    add_modbus_program(gateway_three_clients ${GATEWAY_SOURCE})
     target_link_libraries(gateway_three_clients PRIVATE Threads::Threads)
     target_compile_definitions(gateway_three_clients PRIVATE GATEWAY_DEMO_CLIENT_COUNT=3)
-    add_modbus_program(gateway_four_clients gateway_shared_backend_demo.c)
+    add_modbus_program(gateway_four_clients ${GATEWAY_SOURCE})
     target_link_libraries(gateway_four_clients PRIVATE Threads::Threads)
     target_compile_definitions(gateway_four_clients PRIVATE GATEWAY_DEMO_CLIENT_COUNT=4)
 
